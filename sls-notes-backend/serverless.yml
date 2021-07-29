@@ -6,6 +6,7 @@ frameworkVersion: "2"
 
 plugins:
   - serverless-offline
+  - serverless-domain-manager
 
 custom:
   allowedHeaders:
@@ -19,6 +20,12 @@ custom:
     - X-Amz-User-Agent
     - app_user_id
     - app_user_name
+  customDomain:
+    domainName: wedocommunity.com
+    basePath: "v1"
+    stage: ${self:provider.stage}
+    certificateName: wedocommunity.com
+    createRoute53Record: true
 
 provider:
   name: aws
@@ -30,7 +37,7 @@ provider:
   timeout: 5
   endpointType: regional
   environment:
-    NOTES_TABLE: ${self:service}-${opt:stage,self:provider.stage}
+    NOTES_TABLE: ${self:service}-${opt:stage, self:provider.stage}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -60,22 +67,22 @@ functions:
           cors:
             origin: "*"
             headers: ${self:custom.allowedHeaders}
-  get-note:
-    handler: api/get-note.handler
-    description: GET /note/n/{note_id}
-    events:
-      - http:
-          path: note/n/{note_id}
-          method: get
-          cors:
-            origin: "*"
-            headers: ${self:custom.allowedHeaders}
   get-notes:
     handler: api/get-notes.handler
     description: GET /notes
     events:
       - http:
           path: notes
+          method: get
+          cors:
+            origin: "*"
+            headers: ${self:custom.allowedHeaders}
+  get-note:
+    handler: api/get-note.handler
+    description: GET /note/n/{note_id}
+    events:
+      - http:
+          path: note/n/{note_id}
           method: get
           cors:
             origin: "*"
@@ -97,14 +104,6 @@ resources:
       Type: AWS::DynamoDB::Table
       DeletionPolicy: Retain
       Properties:
-        KeySchema:
-          - AttributeName: user_id
-            KeyType: HASH
-          - AttributeName: timestamp
-            KeyType: RANGE
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
         TableName: ${self:provider.environment.NOTES_TABLE}
         AttributeDefinitions:
           - AttributeName: user_id
@@ -113,6 +112,14 @@ resources:
             AttributeType: N
           - AttributeName: note_id
             AttributeType: S
+        KeySchema:
+          - AttributeName: user_id
+            KeyType: HASH
+          - AttributeName: timestamp
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
         GlobalSecondaryIndexes:
           - IndexName: note_id-index
             KeySchema:

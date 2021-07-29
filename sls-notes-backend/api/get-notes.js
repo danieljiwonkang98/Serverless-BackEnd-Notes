@@ -1,8 +1,9 @@
 //* Route: GET /notes
 
 const AWS = require("aws-sdk");
-const util = require("./util.js");
 AWS.config.update({ region: "ap-northeast-1" });
+
+const util = require("./util");
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 const tableName = process.env.NOTES_TABLE;
@@ -11,7 +12,7 @@ exports.handler = async (event) => {
   try {
     let query = event.queryStringParameters;
     let limit = query && query.limit ? parseInt(query.limit) : 5;
-    item.user_id = util.getUserId(event.headers);
+    let user_id = util.getUserId(event.headers);
 
     let params = {
       TableName: tableName,
@@ -37,20 +38,17 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       headers: util.getResponseHeaders(),
-      body: JSON.stringify("data"),
+      body: JSON.stringify(data),
     };
   } catch (err) {
-    console.log("Error ", err);
+    console.log("Error", err);
     return {
       statusCode: err.statusCode ? err.statusCode : 500,
       headers: util.getResponseHeaders(),
-      body: JSON.stringify(
-        {
-          error: err.name ? err.name : "Exception",
-          message: err.messsage ? err.message : "Unknown Error",
-        },
-        2
-      ),
+      body: JSON.stringify({
+        error: err.name ? err.name : "Exception",
+        message: err.message ? err.message : "Unknown Error",
+      }),
     };
   }
 };
